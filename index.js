@@ -2,6 +2,9 @@ const express = require('express')
 const mongoose = require('mongoose')
 const cors = require('cors')
 const userRoutes = require('./routes/users')
+require('dotenv').config()
+
+const PORT = process.env.PORT || 3001
 
 const app = express()
 
@@ -19,5 +22,5 @@ app.get('/', (req, res)=>{
 })
 
 mongoose.connect("mongodb://localhost:27017/bank_db")
-.then(app.listen(3001))
+.then(app.listen(PORT))
 .catch(error => console.error("db connection error: " + error.message))

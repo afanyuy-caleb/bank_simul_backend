@@ -12,24 +12,42 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({
-    storage, 
+const memStorage = multer.memoryStorage()
+function fileFilter(req, file, cb){
+    if(file.mimetype.startsWith('image')){
+        cb(null, true)
+    }else{
+        msg = JSON.stringify({msg:"invalid file extension", picField: file.fieldname })
+        cb(new Error(msg), false)
+    }
+}
+
+const save = multer({
+    storage: memStorage,
     limits: {
         fileSize: 1024*1024*4
     },
-    fileFilter: function(req, file, cb){
-        if(file.mimetype.startsWith('image')){
-            cb(null, true)
-        }else{
-            msg = JSON.stringify({msg:"invalid file extension", picField: file.fieldname })
-            cb(new Error(msg), false)
-        }
-    }
+    fileFilter
 })
 
-const imgFields = upload.fields([
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 1024*1024*4
+    },
+    fileFilter
+})
+
+
+const imgFields = save.fields([
     {name: 'identity', maxCount: 1},
     {name: 'profilePic', maxCount: 1}
 ])
 
-module.exports = imgFields
+const uploadFields = upload.fields([
+    {name: 'identity', maxCount: 1},
+    {name: 'profilePic', maxCount: 1}
+])
+
+
+module.exports = {imgFields, uploadFields}
