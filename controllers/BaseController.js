@@ -1,7 +1,6 @@
 module.exports = baseController = {
-    name: 'Cals',
-    serverResponse (status, message, field, res){
-        res.json({ status, message, field })
+    serverResponse (code, obj, res){
+        res.status(code).json(obj)
     },
 
     mailHandler(){

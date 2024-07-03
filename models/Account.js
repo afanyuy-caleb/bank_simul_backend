@@ -1,6 +1,10 @@
 const mongoose = require('mongoose')
 
 const accountSchema = new mongoose.Schema({
+  acc_number: {
+    type: String,
+    required: true
+  },
   acc_type: {
     type: String,
     enum: ['savings', 'checking'],

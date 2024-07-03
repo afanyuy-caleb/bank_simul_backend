@@ -7,7 +7,7 @@ const storage = multer.diskStorage({
         return cb(null, './public/uploads')
     },
     filename: function(req, file, cb){
-        new_name = uuid() + path.extname(file.originalname) 
+        var new_name = uuid() + path.extname(file.originalname) 
         return cb(null, new_name)
     }
 });
@@ -15,14 +15,14 @@ const storage = multer.diskStorage({
 const upload = multer({
     storage, 
     limits: {
-        fileSize: 1024*1024*10
+        fileSize: 1024*1024*4
     },
     fileFilter: function(req, file, cb){
-        console.log(file)
         if(file.mimetype.startsWith('image')){
-            cb(null, false)
+            cb(null, true)
         }else{
-            cb(new Error("invalid file extension"), false)
+            msg = JSON.stringify({msg:"invalid file extension", picField: file.fieldname })
+            cb(new Error(msg), false)
         }
     }
 })
