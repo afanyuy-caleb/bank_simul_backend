@@ -14,7 +14,10 @@ const accActSchema = new Schema({
     type: Date,
     expires: '1h',
     required: true
-  } 
-});
+  }},
+  {timestamps: true}
+);
+
+accActSchema.index({expiresAt: 1}, {expireAfterSeconds: 3600})
 
 module.exports = mongoose.model("AccountActivation", accActSchema);

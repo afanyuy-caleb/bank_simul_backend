@@ -6,10 +6,10 @@ const {imgFields, uploadFields} = require('./File')
 const baseController = require('./BaseController')
 const validator = require('validator')
 const accActivation = require('./AccountActivation')
+const {format} = require('date-fns')
 
 
 class userController{
-
     validateData = (postData)=>{
         try{
             // Check for empty entries
@@ -76,10 +76,26 @@ class userController{
     }
     
     activateUser = (req, res, next) =>{
-        imgFields(req, res, (err)=>{
-            const {code, obj} = this.middleWareHandler(err, res, req)
+        imgFields(req, res, async (err)=>{
+            var {code, obj} = this.middleWareHandler(err, res, req)
             if(obj.status){
-                // Handle user activation in baseController
+                const {status, msg} = await baseController.mailHandler(req.body.email)
+
+                code = 400
+                if(status){
+                    // save to the db
+
+                    var saving = await accActivation.addRecord({
+                        email : req.body.email,
+                        activationToken: msg,
+                        expiresAt: new Date(Date.now() + 60*60*1000)
+                    })
+                    code = 200
+                    obj = {status: saving.status, msg: saving.msg, field: "form"}
+                }else{
+                    console.log(msg)
+                    obj = {status, msg, field: "form"}
+                }
             }
 
             return baseController.serverResponse(code, obj, res)
@@ -87,20 +103,66 @@ class userController{
     }
     
     addUser = (req, res) =>{
-        uploadFields(req, res, (err)=>{
-            const {code, obj} = this.middleWareHandler(err, res, req)
+        uploadFields(req, res, async (err)=>{
+            var {code, obj} = this.middleWareHandler(err, res, req)
             if(obj.status){
-                // Create a user
-                console.log(req.files)
-                // console.log(req.body)
+                // Check if the user exists
+                var {status, data} = await this.readOne({email: req.body.email})
+                if(status){
+                    if(data !== null){
+                        // Record exists
+                        code = 400
+                        obj = {status: false, msg: "email already taken", field: "form"}
+                    }
+                    else{
+                        var exists = accActivation.getRecord({email: req.body.email, activationToken: req.body.otp_code})
+
+                        if(exists.status){
+                            // save the user
+                        }
+                    }
+                }else{
+                    console.log(data)
+                }
             }
 
             return baseController.serverResponse(code, obj, res)
         })
     }
     
-    getUsers = (req, res) =>{
+    getUsers = (req = null, res = null) =>{ 
         res.status(200).json({message: "This is really cool"})
+    }
+
+    save = async (postData)=>{
+        await userModel.create(postData)
+        .then(result => {
+            return {status: true}
+        })
+        .catch(err=> {
+            return {
+                status: false,
+                err
+            }
+        })
+    }
+
+    read = async (criteria = {})=>{
+        try{
+            var data = await userModel.find(criteria)
+            return data
+        }catch(err){
+            return false
+        }
+    }
+
+    readOne = async (criteria = {})=>{
+        try{
+            var data = await userModel.findOne(criteria)
+            return {status: true, data}
+        }catch(err){
+            return {status: false, data: err}
+        }
     }
 }
 

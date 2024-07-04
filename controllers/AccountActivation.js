@@ -5,14 +5,22 @@ class accountActivation{
         const record = new accActivationModel(postData)
         try{
             await record.save()
-    
             return {status: true, msg: "record added successfully"}
-        }
-        catch(err){
+
+        }catch(err){
             return {status: false, msg: err.message}
         }
     }
     
+    getRecord = async(criteria = {}) =>{
+        try{
+            const data = await accActivationModel.find(criteria)
+            return {status: true, data}
+        }catch(err){
+            return {status: false, err}
+        }
+    }
+
     deleteRecord = async (criteria = {}) =>{
         try{
             await accActivationModel.deleteMany(criteria)

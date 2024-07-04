@@ -1,10 +1,9 @@
-// const accActivationModel = require('../models/Account_activation')
-const transporter = require('../utils/sendEmail')
 require('dotenv').config()
+const transporter = require('../utils/sendEmail')
 
 class baseController{
     generate_random(){
-        let number = (Math.random() * 1000000).toString().padStart(6, '0')
+        let number = (Math.random() * 1000000).toString().padStart(6, 0)
         return Number.parseInt(number)
     }
 
@@ -14,9 +13,9 @@ class baseController{
     
     async mailHandler(email, session = null){
         try{
-            const expiresAt = new Date()
-            const code = this.generate_random()
-            expiresAt = expiresAt.setTime(Date.now() + 60*60*1000)
+            var expiresAt = new Date()
+            var code = this.generate_random()
+            expiresAt.setTime(Date.now() + 60*60*1000)
             
             await transporter.sendMail({
                 from: process.env.USER_NAME,
@@ -27,19 +26,16 @@ class baseController{
                 <h2> ${code} </h2>`
                 :
                 `<p>Below is the code to activate you ASI membership account: <p><br>
-                <h2> $code </h2>
+                <h2> ${code} </h2>
                 <p> The code expires at ${expiresAt} </p>`
             })
 
-            return {status: true, msg: "message sent successfully"}
+            return {status: true, msg: code}
 
         }catch(err){
             return {status: false, msg: err}
         }
-
-
     }
-
 }
 
 module.exports = new baseController
