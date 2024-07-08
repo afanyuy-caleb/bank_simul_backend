@@ -1,15 +1,9 @@
 const fs = require('fs')
 const path = require('path')
+const accountModel = require('../models/Account');
+const baseController = require('./BaseController');
 
 class accController{
-    generate_random(){
-        var num = Math.random() * 100000000
-        num = num.toString().padStart(9, 1)
-        num = num.spit().sort(()=>Math.random() - 0.5).join('')
-    
-        return parseInt(num)
-    }
-
     generateAccountNumber(){
         try{
             const dir = path.join(__dirname, '..', 'utils', 'accId.txt')
@@ -17,18 +11,32 @@ class accController{
             if(fs.existsSync(dir)){
                 id = fs.readFileSync(dir)
             }
-            var numb = this.generate_random() + id
-            fs.writeFileSync(dir, id++)
-    
+            var numb = baseController.generate_random(10) + parseInt(id)
+            fs.writeFileSync(dir, (id++).toString())
             return {status: true, data: numb}
         }catch(err){
-            return {status: false, data: err}
+            return {status: false, data: err.message}
         }
     }
 
-    createAccount(){
-        
+    createAccount = async (type) =>{
+        const {status, data} = this.generateAccountNumber()
+
+        if(!status){
+            return {status, data}
+        }
+        const accObj = {
+            acc_number : data,
+            acc_type: type
+        }
+        try{
+            await accountModel.create(accObj)
+            return {status: true, data}
+
+        }catch(err){
+            return {status: false, data : err.message}
+        }   
     }
 }
 
-module.exports = accController;
+module.exports = new accController;

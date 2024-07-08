@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         unique: true,
         required: true,
-        maxlength: 15
+        maxlength: 20
     },
     DOB: {
         type: Date,
@@ -28,13 +28,16 @@ const userSchema = new mongoose.Schema({
         required: true,
         maxlength: 50
     },
-    password_hash: String,
-    identityPic: {
+    pass: String,
+    identity: {
         type: String,
         required: true,
     },
     profilePic: String,
-    acc_nb: Number,
+    acc_nb: {
+        type: String,
+        required: true
+    },
     reg_status: {
         type: Boolean,
         default: false,

@@ -15,7 +15,7 @@ const storage = multer.diskStorage({
 const memStorage = multer.memoryStorage()
 function fileFilter(req, file, cb){
     if(file.mimetype.startsWith('image')){
-        cb(null, true)
+        cb(null, true)  
     }else{
         msg = JSON.stringify({msg:"invalid file extension", picField: file.fieldname })
         cb(new Error(msg), false)
