@@ -13,7 +13,7 @@ app.use('/users', userRoutes)
 app.use(express.static('public'))
 
 app.use(express.json({limit: "50mb", extended: false}))
-app.use(express.urlencoded({limit: "50mb", extended: false}))
+app.use(express.urlencoded({limit: "50mb", extended: true}))
 app.use(cors())
 
 app.get('/', (req, res)=>{

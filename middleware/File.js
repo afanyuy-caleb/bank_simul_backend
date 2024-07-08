@@ -49,5 +49,6 @@ const uploadFields = upload.fields([
     {name: 'profilePic', maxCount: 1}
 ])
 
+const uploadNone = multer().none()
 
-module.exports = {imgFields, uploadFields}
+module.exports = {imgFields, uploadFields, uploadNone}

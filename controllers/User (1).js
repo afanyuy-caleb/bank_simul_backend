@@ -2,40 +2,18 @@
 
 const multer = require('multer')
 const userModel = require('../models/User')
-const {imgFields, uploadFields, uploadNone} = require('../middleware/File')
+const {imgFields, uploadFields} = require('../middleware/File')
 const accActivation = require('../models/Account_activation')
 const bcrypt = require('bcrypt')
 const account = require('./Account')
 const baseController = require('./BaseController')
 const accActController = require('./AccountActivation')
-const fs = require('fs')
-const fsPromises = require('fs').promises
-const path = require('path')
+const fs = require('fs').promises
 
 class userController{
 
     generateHash = (pass)=>{
         return bcrypt.hashSync(pass, 10)
-    }
-
-    deleteImages = async () =>{
-        let files = this.req.files
-
-        for (let file in this.req.files){
-            let file_name = files[file][0].filename
-
-            let file_path = path.join(__dirname, '..', 'public', 'uploads', file_name)
-
-            try{
-                if(fs.existsSync(file_path)){
-                    await fsPromises.unlink(file_path)
-                    console.log("Files deleted successfully")
-                }
-            }
-            catch(err){
-                console.log(err)
-            }
-        }
     }
 
     createUserObject = ()=>{
@@ -69,6 +47,7 @@ class userController{
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({ msg: err.message.toLowerCase()+ ', max file size is 4Mb', field: err.field });
             }
+    
             return res.status(400).json({ error: err.message.toLowerCase() });
         }
 
@@ -97,23 +76,29 @@ class userController{
         }
 
         return {code, obj}
-    }    
+    }
+    
     activateUser = (req, res, next) =>{
         this.req = req
         this.res = res
+
         imgFields(req, res, async (err)=>{
             var {code, obj} = this.middleWareHandler(err, res, req)
+
+            console.log(req.body.tel)
 
             if(obj.status){
 
                 // Check if the user already exists
                 var {status, data} = await baseController.readOne(userModel, { $or: [{email: req.body.email},{tel: req.body.tel}]})
 
+                console.log(status, data)
+
                 if(!status || data){
                     if(req.body.email === data?.email){
                         obj = {status: false, msg: "email already taken", field: "email"}
                     }else{
-                        obj = {status: false, msg: "phone number already taken", field: "tel"}
+                        obj = {status: false, msg: "tel number already taken", field: "tel"}
                     }
                     return baseController.serverResponse(409, obj, res)
                 }
@@ -124,8 +109,7 @@ class userController{
                 var {status, msg} = await accActController.addRecord({
                     email : req.body.email,
                     activationToken: token,
-                    expiresAt: new Date(Date.now() + 60*30*1000),
-                    active: false
+                    expiresAt: new Date(Date.now() + 60*30*1000)
                 })
 
                 if(!status){
@@ -134,8 +118,8 @@ class userController{
                 }
 
                 var {status, msg} = await baseController.mailHandler(req.body.email, token)
-                
-                code = status? 200 : 400;
+
+                code = status ? 200: 400;
                 obj = {status, msg, field: "form"}
             }
 
@@ -146,25 +130,22 @@ class userController{
     addUser = (req, res) =>{
         this.req = req
         this.res = res
+
         uploadFields(req, res, async (err)=>{
-            
             var {code, obj} = this.middleWareHandler(err, res, req)
             if(! obj.status){
-                await this.deleteImages()
                 return baseController.serverResponse(code, obj, res)
             }
 
             // Check if the user exists
             var {status, data} = await baseController.readOne(userModel, {email: req.body.email})
             if(! status){
-                await this.deleteImages()
                 obj = {status: false, msg: data, field: "form"}
                 return baseController.serverResponse(501, obj, res)
             }
 
             if(data !== null){
                 // Record exists
-                await this.deleteImages()
                 obj = {status: false, msg: "email already taken", field: "email"}
                 return baseController.serverResponse(409, obj, res)
             }
@@ -172,8 +153,7 @@ class userController{
             var {status, data} = await baseController.read(accActivation, {email: req.body.email, activationToken: req.body.otp_code})
 
             if(!status || (data.length == 0)){
-                await this.deleteImages()
-                obj = {status: false, msg: "Invalid otp code", field: "form"}
+                obj = {status: false, msg: "invalid otp code", field: "form"}
                 return baseController.serverResponse(400, obj, res)
             }
 
@@ -181,7 +161,6 @@ class userController{
             var {status, data} = await account.createAccount(req.body.acc_type)
 
             if(!status){
-                await this.deleteImages()
                 obj = {status: false, msg: data, field: "form"}
                 return baseController.serverResponse(409, obj, res)
             }
@@ -190,7 +169,7 @@ class userController{
             user['acc_nb'] = data
 
             // Update the account activation log
-            const acc_update = await baseController.updateOne(accActivation, {email: user.email}, {active: true})
+            const acc_update = baseController.updateOne(accActivation, {email: user.email}, {active: true})
 
             // Save the user to the DB
             const saved = await this.save(user)
@@ -202,47 +181,35 @@ class userController{
                 }
 
                 // Delete the images
-                await this.deleteImages()
 
-                obj = {status: false, msg: "phone number already taken", field}
+                obj = {status: false, msg: "tel number already taken    ", field}
                 return baseController.serverResponse(400, obj, res)
             }
             
+
+
             return baseController.serverResponse(200, obj, res)
         })
     }
     
     getUser = async (req, res) =>{ 
-       
-        uploadNone(req, res, async (err)=>{
-            var {email, otp_code} = req.body
-            
-            var {status, data} = await baseController.readOne(accActivation, {email})
-            var obj = {}
-    
-            if(!status || !data){
-                obj = {status: false, msg: "Invalid code", field: "form"}
-                return baseController.serverResponse(200, obj, res)
-            }
-    
-            // Update the account activation log
-            const acc_update = await baseController.updateOne(accActivation, {email}, {active: true})
-    
-            var {status, data} = await baseController.readOne(userModel, {email})
-    
-            let file_path = path.join(__dirname, '..', 'public', 'uploads', data.profilePic)
-            let file_path2 = path.join(__dirname, '..', 'public', 'uploads', data.identity)
-            try{
-                data.profilePic = await fsPromises.readFile(file_path)
-                data.identity = await fsPromises.readFile(file_path2)
-            } catch(error){
-                obj = {status: false, msg: error.msg, field: "form"}
-                return baseController.serverResponse(400, obj, res)
-            }
-    
-            obj = {status, msg: data, field: "form"}
+        console.log(req.body.otp_code)
+        var {email, otp_code} = req.body
+        var {status, data} = await baseController.readOne(accActivation, {email, activationToken: parseInt(otp_code)})
+        var obj = {}
+
+        console.log(data)
+
+        if(!status || !data){
+            obj = {status, msg: "Invalid code", field: "form"}
             return baseController.serverResponse(200, obj, res)
-        })
+        }
+
+        var {status, data} = baseController.readOne(userModel, {email})
+
+        obj = {status, msg: data, field: "form"}
+        return baseController.serverResponse(200, obj, res)
+
     }
 
     login = async (req, res)=>{
@@ -261,8 +228,8 @@ class userController{
             return baseController.serverResponse(200, obj, res)
         }
 
-        // Check if the user just recently logged in or just registered
-        var active = await baseController.readOne(accActivation, {email, active: true})
+        // Check if the user just recently logged in
+        var active = baseController.readOne(accActivation, {email})
         if(!active.status || !active.data){
 
             // Save the code to the db
@@ -284,17 +251,6 @@ class userController{
 
             obj = {status: mail.status, msg: mail.msg, field: "form"}
             return baseController.serverResponse(code, obj, res)
-        }
-
-        // Convert the file to a buffer
-        let file_path = path.join(__dirname, '..', 'public', 'uploads', data.profilePic)
-        let file_path2 = path.join(__dirname, '..', 'public', 'uploads', data.identity)
-        try{
-            data.profilePic = await fsPromises.readFile(file_path)
-            data.identity = await fsPromises.readFile(file_path2)
-        } catch(error){
-            obj = {status: false, msg: error.msg, field: "form"}
-            return baseController.serverResponse(400, obj, res)
         }
 
         obj = {status: true, msg: data, field: "form"}
