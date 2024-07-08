@@ -49,5 +49,4 @@ const uploadFields = upload.fields([
     {name: 'profilePic', maxCount: 1}
 ])
 
-
 module.exports = {imgFields, uploadFields}
